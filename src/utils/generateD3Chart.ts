@@ -154,7 +154,14 @@ export const generateD3Chart = (
     .attr('y1', 0)
     .attr('y2', height)
 
-  // Append the projection line to the Y axis
+  // Place the date near the projection line to the X axis
+  focus
+    .append('text')
+    .attr('class', 'date')
+    .attr('stroke', 'brown')
+    .attr('font-weight', 'normal')
+
+  // Append the projection line to the left Y axis
   focus
     .append('line')
     .attr('class', 'y-projection')
@@ -164,6 +171,34 @@ export const generateD3Chart = (
     .attr('x1', width)
     .attr('x2', width)
 
+  // Append the name of the projection line to the left Y axis and the current value
+  focus
+    .append('text')
+    .attr('class', 'y-projection-name')
+    .attr('dx', 0)
+    .attr('dy', '1.25em')
+    .attr('stroke', 'brown')
+    .attr('font-weight', 'normal')
+
+  // Append the projection line to the right Y axis
+  focus
+    .append('line')
+    .attr('class', 'y1-projection')
+    .attr('stroke', 'brown')
+    .style('stroke-dasharray', '3,3')
+    .style('opacity', 0.7)
+    .attr('x1', width)
+    .attr('x2', width)
+
+  // Append the name of the projection line to the right Y axis and the current value
+  focus
+    .append('text')
+    .attr('class', 'y1-projection-name')
+    .attr('dx', 0)
+    .attr('dy', '-0.5em')
+    .attr('stroke', 'brown')
+    .attr('font-weight', 'normal')
+
   // Append the circle at the lines intersection
   focus
     .append('circle')
@@ -172,33 +207,6 @@ export const generateD3Chart = (
     .style('fill', 'none')
     .attr('r', 5)
     .attr('stroke-width', 2)
-
-  // Place the date near the intersection
-  focus
-    .append('text')
-    .attr('class', 'date')
-    .attr('dx', 8)
-    .attr('dy', '-0.5em')
-    .attr('stroke', 'steelblue')
-    .attr('font-weight', 'normal')
-
-  // Place the close price value under the date
-  focus
-    .append('text')
-    .attr('class', 'close-price')
-    .attr('dx', 8)
-    .attr('dy', '1em')
-    .attr('stroke', 'steelblue')
-    .attr('font-weight', 'normal')
-
-  // Place the volume value under the close price
-  focus
-    .append('text')
-    .attr('class', 'volume')
-    .attr('dx', 8)
-    .attr('dy', '2.5em')
-    .attr('stroke', 'steelblue')
-    .attr('font-weight', 'normal')
 
 
   function mouseMove(event: MouseEvent) {
@@ -215,19 +223,13 @@ export const generateD3Chart = (
       .select('circle.y')
       .attr('transform', 'translate(' + x(d.date) + ',' + y(d.close) + ')')
 
-    // Move the text
-    focus
-      .select('text.close-price')
-      .attr('transform', 'translate(' + x(d.date) + ',' + y(d.close / 1.4) + ')')
-      .text(`Close: US $ ${d.close}`)
+    // Move date text
     focus
       .select('text.date')
-      .attr('transform', 'translate(' + x(d.date) + ',' + y(d.close / 1.4) + ')')
+      .attr('transform', 'rotate(-90)')
+      .attr('dy', x(d.date) - 10)
+      .attr('x', -y(d.close / 2 - 50))
       .text(`Date:  ${d3.timeFormat('%b %d, %Y')(d.date)}`)
-    focus
-      .select('text.volume')
-      .attr('transform', 'translate(' + x(d.date) + ',' + y(d.close / 1.4) + ')')
-      .text(`Volume:  ${d.volume.toLocaleString('en-US')}`)
 
     // Move projection lines
     focus
@@ -236,8 +238,23 @@ export const generateD3Chart = (
       .attr('y2', height - y(d.close))
     focus
       .select('.y-projection')
-      .attr('transform', 'translate(' + width * -1 + ',' + y(d.close) + ')')
-      .attr('x2', width + width)
+      .attr('transform', 'translate(' + -width + ',' + y(d.close) + ')')
+      .attr('x2', width + x(d.date))
+    focus
+      .select('.y1-projection')
+      .attr('transform', 'translate(' + (-width + x(d.date)) + ',' + y1(d.volume) + ')')
+      .attr('x2', width * 2 - x(d.date))
+
+    // Move projection line names and values
+    focus
+      .select('.y-projection-name')
+      .attr('transform', 'translate(' + (x(d.date) / 2 - 60) + ',' + y(d.close) + ')')
+      .text(`Close: US $ ${d.close}`)
+    focus
+      .select('.y1-projection-name')
+      .attr('transform', 'translate(' + (x(d.date) + (width - x(d.date)) / 2 - 60) + ',' + y1(d.volume) + ')')
+      .text(`Volume:  ${d.volume.toLocaleString('en-US')}`)
+
 
     // Remove the previous tooltip
     svg.select('#side-tooltip').remove()
@@ -245,7 +262,7 @@ export const generateD3Chart = (
     // Add a side tooltip
     svg.append('text')
       .attr('id', 'side-tooltip')
-      .attr('x', () => width + 60)
+      .attr('x', () => width + 50)
       .selectAll('tspan')
       .data([
         'Date: ' + d3.timeFormat('%b %d, %Y')(d.date),
