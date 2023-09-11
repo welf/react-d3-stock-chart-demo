@@ -2,8 +2,8 @@ import './App.css'
 import { useD3Chart } from './hooks'; // Import the useStockChart hook
 
 function App() {
-  const stockSymbol = 'NVDA.US'; // Replace with your desired stock ticker symbol
-  const year = 2020; // Replace with your desired year
+  const stockSymbol = 'AAPL.US'; // Replace with your desired stock ticker symbol
+  const year = 2022; // Replace with your desired year
 
   const { chartRef, warning } = useD3Chart(stockSymbol, year); // Call the useD3Chart hook
 
