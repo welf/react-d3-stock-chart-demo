@@ -199,10 +199,19 @@ export const generateD3Chart = (
     .attr('stroke', 'brown')
     .attr('font-weight', 'normal')
 
-  // Append the circle at the lines intersection
+  // Append the circle at the intersection of the projection lines to X and left Y axes
   focus
     .append('circle')
-    .attr('class', 'y')
+    .attr('class', 'x-y')
+    .attr('stroke', 'brown')
+    .style('fill', 'none')
+    .attr('r', 5)
+    .attr('stroke-width', 2)
+
+  // Append the circle at the intersection of the projection lines to X and right Y axes
+  focus
+    .append('circle')
+    .attr('class', 'x-y1')
     .attr('stroke', 'brown')
     .style('fill', 'none')
     .attr('r', 5)
@@ -218,16 +227,19 @@ export const generateD3Chart = (
       d1 = data[i], // the data on the right of the mouse position
       d = +x0 - +d0.date > +d1.date - +x0 ? d1 : d0 // choose the nearest data point
 
-    // Move the circle
+    // Move intersection circles
     focus
-      .select('circle.y')
+      .select('circle.x-y')
       .attr('transform', 'translate(' + x(d.date) + ',' + y(d.close) + ')')
+    focus
+      .select('circle.x-y1')
+      .attr('transform', 'translate(' + x(d.date) + ',' + y1(d.volume) + ')')
 
     // Move date text
     focus
       .select('text.date')
       .attr('transform', 'rotate(-90)')
-      .attr('dy', x(d.date) - 10)
+      .attr('dy', x(d.date) - 15)
       .attr('x', -y(d.close / 2 - 50))
       .text(`Date:  ${d3.timeFormat('%b %d, %Y')(d.date)}`)
 
