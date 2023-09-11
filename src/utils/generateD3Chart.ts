@@ -1,6 +1,17 @@
 import * as d3 from 'd3'
 import { ChartData } from '../types'
 
+const getVolumeTickText = (value: d3.NumberValue): string => {
+  const volume = +value
+  if (volume >= 1_000_000) {
+    return `${(+value / 1_000_000).toLocaleString('en-US')}M`
+  } else if (volume >= 1_000) {
+    return `${(+value / 1_000).toLocaleString('en-US')}K`
+  } else {
+    return `${volume.toLocaleString('en-US')}`
+  }
+}
+
 export const generateD3Chart = (
   stockSymbol: string,
   data: ChartData[],
@@ -9,7 +20,7 @@ export const generateD3Chart = (
   height: number
 ) => {
   // Define margins
-  const margin = { top: 20, right: 200, bottom: 20, left: 40 }
+  const margin = { top: 20, right: 250, bottom: 20, left: 40 }
 
   // Define the scale for the X axis
   const x = d3.scaleTime()
@@ -22,29 +33,41 @@ export const generateD3Chart = (
     .ticks(11) // we want to show monthly ticks
     .tickFormat(d3.timeFormat('%b %Y'))
 
-  // Define the scale for the Y axis
+  // Define the scale for the left Y axis (close price)
   const y = d3.scaleLinear()
     .domain([0, d3.max(data, d => d.close * 1.2) as number])
     .range([height, 0])
 
-  // Create the Y Axis
+  // Create the left Y Axis
   const yAxis = d3
     .axisLeft(y)
+    .ticks(9)
     .tickSize(5)
 
-  // Define the stock close price line
-  const line = d3.line<ChartData>()
+  // Define the scale for the right Y axis (volume)
+  const y1 = d3.scaleLinear()
+    .domain([0, d3.max(data, d => d.volume * 2) as number])
+    .range([height, 0])
+
+  // Create the right Y Axis
+  const yAxis1 = d3
+    .axisRight(y1)
+    .tickSize(5)
+    .tickFormat(getVolumeTickText)
+
+  // Define the close price line
+  const closePriceLine = d3.line<ChartData>()
     .x(d => x(d.date))
     .y(d => y(d.close))
     .curve(d3.curveCardinal) // make the line smoother
 
-  // Define the area under the stock close price line
-  const area = d3
+  // Define the volume area
+  const volumeArea = d3
     .area<ChartData>()
     .x(d => x(d.date))
     .y0(height)
-    .y1(d => y(d.close))
-    .curve(d3.curveCardinal) // make the area's line smoother
+    .y1(d => y1(d.volume))
+
 
   // Create the SVG
   const svg = d3.select(element)
@@ -57,7 +80,7 @@ export const generateD3Chart = (
     .append('g')
     .attr('transform', `translate(${margin.left}, ${margin.top})`)
 
-  // Append the X axis to the SVG. Don't add a label because ticks' texts are self-explanatory
+  // Append the X axis to the SVG. Don't add a label because tick texts are self-explanatory
   svg.append('g')
     .attr('transform', `translate(0,${height})`)
     .call(xAxis)
@@ -76,34 +99,44 @@ export const generateD3Chart = (
     .call(g => g.selectAll('.tick line').clone()
       .attr('x2', width)
       .attr('stroke-opacity', 0.1))
+    // Create a label for the Y axis
     .call(g => g.select('.tick:last-of-type text').clone()
       .attr('x', 3)
       .attr('text-anchor', 'start')
       .attr('font-weight', 'bold')
       .text(`${stockSymbol} daily close ($)`)
-      .attr('font-size', '1.5em'))
+      .attr('font-size', '1.75em'))
     .call(g => g.selectAll('.tick text').attr('font-size', '1.2em'))
-    .append('text')
-    .attr('fill', '#000')
-    .attr('transform', 'rotate(-90)')
-    .attr('x', -height / 2)
-    .attr('y', -margin.left)
-    .attr('dy', '1em')
 
-  // Add the stock close price line
+  // Append the right Y axis to the SVG and add a label
+  svg.append('g')
+    .attr('transform', `translate(${width}, 0)`)
+    .call(yAxis1)
+    .call(g => g.select('.domain').remove())
+    .call(g => g.selectAll('.tick text').attr('font-size', '1.2em'))
+    .append('text') // Add the label
+    .attr('transform', 'rotate(270)')
+    .attr('font-size', '1.75em')
+    .attr('x', -height + 5)
+    .attr('y', -25)
+    .attr('dy', '1em')
+    .attr('fill', '#000')
+    .text('Volume')
+
+  // Add the close price line
   svg.append('path')
     .datum(data)
     .attr('fill', 'none')
     .attr('stroke', 'steelblue')
     .attr('stroke-width', 2)
-    .attr('d', line)
+    .attr('d', closePriceLine)
 
-  // Add the area under the stock close price line
+  // Add the area to represent volume values
   svg.append('path')
     .datum(data)
     .attr('fill', 'lightsteelblue')
     .attr('opacity', 0.5)
-    .attr('d', area)
+    .attr('d', volumeArea)
 
   // Add the container for elements that travels along the chart following the mouse
   const focus = svg
@@ -140,7 +173,16 @@ export const generateD3Chart = (
     .attr('r', 5)
     .attr('stroke-width', 2)
 
-  // Place the close price value near the intersection
+  // Place the date near the intersection
+  focus
+    .append('text')
+    .attr('class', 'date')
+    .attr('dx', 8)
+    .attr('dy', '-0.5em')
+    .attr('stroke', 'steelblue')
+    .attr('font-weight', 'normal')
+
+  // Place the close price value under the date
   focus
     .append('text')
     .attr('class', 'close-price')
@@ -149,12 +191,12 @@ export const generateD3Chart = (
     .attr('stroke', 'steelblue')
     .attr('font-weight', 'normal')
 
-  // Place the date near the intersection
+  // Place the volume value under the close price
   focus
     .append('text')
-    .attr('class', 'date')
+    .attr('class', 'volume')
     .attr('dx', 8)
-    .attr('dy', '-0.5em')
+    .attr('dy', '2.5em')
     .attr('stroke', 'steelblue')
     .attr('font-weight', 'normal')
 
@@ -176,12 +218,16 @@ export const generateD3Chart = (
     // Move the text
     focus
       .select('text.close-price')
-      .attr('transform', 'translate(' + x(d.date) + ',' + y(d.close / 3) + ')')
+      .attr('transform', 'translate(' + x(d.date) + ',' + y(d.close / 1.4) + ')')
       .text(`Close: US $ ${d.close}`)
     focus
       .select('text.date')
-      .attr('transform', 'translate(' + x(d.date) + ',' + y(d.close / 3) + ')')
+      .attr('transform', 'translate(' + x(d.date) + ',' + y(d.close / 1.4) + ')')
       .text(`Date:  ${d3.timeFormat('%b %d, %Y')(d.date)}`)
+    focus
+      .select('text.volume')
+      .attr('transform', 'translate(' + x(d.date) + ',' + y(d.close / 1.4) + ')')
+      .text(`Volume:  ${d.volume.toLocaleString('en-US')}`)
 
     // Move projection lines
     focus
@@ -199,10 +245,7 @@ export const generateD3Chart = (
     // Add a side tooltip
     svg.append('text')
       .attr('id', 'side-tooltip')
-      .attr('x', () => 10)
-      .attr('y', () => 10)
-      .attr('x', () => width + 10)
-      .attr('y', () => 10)
+      .attr('x', () => width + 60)
       .selectAll('tspan')
       .data([
         'Date: ' + d3.timeFormat('%b %d, %Y')(d.date),
@@ -219,7 +262,7 @@ export const generateD3Chart = (
       .attr('fill', 'steelblue')
       .attr('x',
         function () { return d3.select(<HTMLElement>this.parentNode).attr('x') })
-      .attr('y', function (_data, i) { return 15 + (i * 25) })
+      .attr('y', function (_data, i) { return 20 + (i * 25) })
       .text(function (data) { return data })
   }
 
