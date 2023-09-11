@@ -14,7 +14,7 @@ The chart renders the daily close price of the selected stock for a full year.
 
 Open the file [App.tsx](./src/App.tsx) in your editor and edit the values of [`stockSymbol`](./src/App.tsx#L5) and [`year`](./src/App.tsx#L6) constants to get from the API the data of the desired stock for the desired year.
 
-If you have your API key from Unicorn Data Services, rename the `.env.example` file to the `.env` in the root of the app and add your key as `VITE_APP_EODHD_API_TOKEN`. Otherwise, the demo key will be used.
+If you have your API key from Unicorn Data Services, rename the [`.env.example`](https://github.com/welf/react-d3-stock-chart-demo/blob/main/.env.example) file to the `.env` in the root of the app and add your key as `VITE_APP_EODHD_API_TOKEN`. Otherwise, the demo key will be used.
 
 Then run in your terminal:
 ```
